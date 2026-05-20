@@ -79,7 +79,10 @@ export default function AdminPage() {
         setVideos(data.videos || []);
         setMessages(data.messages || []);
         const p = data.profile || {};
-        setProfile({ name: "", role: "", location: "", bio: "", bio2: "", email: "", avatarUrl: "", skills: [], stats: [], timeline: [], coreFocus: [], ...p });
+        const DEFAULT_STATS = [{label:"Projects",value:"15+"},{label:"Tools",value:"20+"},{label:"Code",value:"10K+"},{label:"Motion",value:"100%"}];
+        // Always ensure exactly 4 stat boxes by merging saved data over defaults
+        const mergedStats = DEFAULT_STATS.map((def, i) => (p.stats && p.stats[i]) ? p.stats[i] : def);
+        setProfile({ name: "", role: "", location: "", bio: "", bio2: "", email: "", avatarUrl: "", skills: [], timeline: [], coreFocus: [], ...p, stats: mergedStats });
         setSocials(data.socials || {
           email: data.profile?.email || "hello@saransh.dev",
           github: "https://github.com/SaranshChaudhary17",
@@ -912,16 +915,27 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    {/* Stats Grid Editor */}
+                    {/* Stats Grid Editor — always 4 fixed boxes */}
                     <div className="p-5 rounded-2xl border border-parchment/12 bg-black/20">
-                      <h3 className="font-bold text-pearl text-sm uppercase tracking-widest mb-4">Profile Stats (the 4 boxes)</h3>
+                      <h3 className="font-bold text-pearl text-sm uppercase tracking-widest mb-1">Profile Stats (the 4 boxes)</h3>
+                      <p className="text-[10px] text-parchment/50 uppercase tracking-wider mb-4">Edit the label and value for each stat card shown on the Profile page</p>
                       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {(profile.stats && profile.stats.length > 0 ? profile.stats : [{label:"Projects",value:"15+"},{label:"Tools",value:"20+"},{label:"Code",value:"10K+"},{label:"Motion",value:"100%"}]).map((stat: any, i: number) => (
-                          <div key={i} className="space-y-2 p-3 rounded-xl bg-black/20 border border-parchment/10">
-                            <input type="text" placeholder="Label" value={stat.label} onChange={e => { const s = [...(profile.stats || [{label:"Projects",value:"15+"},{label:"Tools",value:"20+"},{label:"Code",value:"10K+"},{label:"Motion",value:"100%"}])]; s[i] = {...s[i], label: e.target.value}; setProfile({...profile, stats: s}); }} className="w-full rounded-lg border border-parchment/12 bg-black/40 px-3 py-2 text-xs text-parchment/80 outline-none focus:border-ember/50" />
-                            <input type="text" placeholder="Value" value={stat.value} onChange={e => { const s = [...(profile.stats || [{label:"Projects",value:"15+"},{label:"Tools",value:"20+"},{label:"Code",value:"10K+"},{label:"Motion",value:"100%"}])]; s[i] = {...s[i], value: e.target.value}; setProfile({...profile, stats: s}); }} className="w-full rounded-lg border border-ember/20 bg-black/40 px-3 py-2 text-lg font-black text-ember outline-none focus:border-ember/50" />
-                          </div>
-                        ))}
+                        {[0, 1, 2, 3].map((i) => {
+                          const DEFAULT_STATS = [{label:"Projects",value:"15+"},{label:"Tools",value:"20+"},{label:"Code",value:"10K+"},{label:"Motion",value:"100%"}];
+                          const stat = (profile.stats && profile.stats[i]) ? profile.stats[i] : DEFAULT_STATS[i];
+                          const updateStat = (field: string, val: string) => {
+                            const s = [0,1,2,3].map((j) => (profile.stats && profile.stats[j]) ? profile.stats[j] : DEFAULT_STATS[j]);
+                            s[i] = { ...s[i], [field]: val };
+                            setProfile({ ...profile, stats: s });
+                          };
+                          return (
+                            <div key={i} className="space-y-2 p-3 rounded-xl bg-black/20 border border-parchment/10">
+                              <p className="text-[9px] uppercase tracking-widest text-parchment/40">Box {i + 1}</p>
+                              <input type="text" placeholder="Label (e.g. Projects)" value={stat.label} onChange={e => updateStat("label", e.target.value)} className="w-full rounded-lg border border-parchment/12 bg-black/40 px-3 py-2 text-xs text-parchment/80 outline-none focus:border-ember/50" />
+                              <input type="text" placeholder="Value (e.g. 15+)" value={stat.value} onChange={e => updateStat("value", e.target.value)} className="w-full rounded-lg border border-ember/20 bg-black/40 px-3 py-2 text-lg font-black text-ember outline-none focus:border-ember/50" />
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
