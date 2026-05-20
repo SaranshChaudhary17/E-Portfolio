@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --background: #0d0d0d;
+  --foreground: #f4f2ee;
+  --font-inter: Inter, Manrope, system-ui, sans-serif;
+  --font-space: "Space Grotesk", Inter, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: auto;
+  background: var(--background);
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(232, 117, 26, 0.16), transparent 28%),
+    radial-gradient(circle at 85% 24%, rgba(169, 196, 218, 0.12), transparent 26%),
+    linear-gradient(135deg, #0d0d0d 0%, #11100f 45%, #070707 100%);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+body:before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(to bottom, black, transparent 82%);
+}
+
+body:after {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(90deg, rgba(232, 117, 26, 0.05), transparent 32%, rgba(169, 196, 218, 0.04));
+  mix-blend-mode: screen;
+}
+
+::selection {
+  background: rgba(232, 117, 26, 0.55);
+  color: #fff;
+}
+
+.noise {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.055;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.cinematic-shell {
+  position: relative;
+  z-index: 5;
+}
+
+.glass {
+  border: 1px solid rgba(217, 199, 184, 0.15);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.035));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 24px 80px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(24px);
+}
+
+.orange-text {
+  background: linear-gradient(180deg, #ff9b36 0%, #e8751a 54%, #b85a12 100%);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.holo-line {
+  background: linear-gradient(90deg, transparent, rgba(232, 117, 26, 0.8), transparent);
+}
+
+.section-pad {
+  padding: 7rem 0;
+}
+
+@media (max-width: 768px) {
+  .section-pad {
+    padding: 4.5rem 0;
+  }
+}
