@@ -6,22 +6,56 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
-const timeline = [
-  ["2023", "Started combining code, UI design, and video editing into one creative practice."],
-  ["2024", "Built practical systems, brand sites, and language technology projects."],
-  ["2025", "Expanded into AI security, advanced interfaces, and cinematic web experiences."],
-  ["2026", "Focused on premium interactive portfolios and motion-led product storytelling."]
+const DEFAULT_STATS = [
+  { label: "Projects", value: "15+" },
+  { label: "Tools", value: "20+" },
+  { label: "Code", value: "10K+" },
+  { label: "Motion", value: "100%" }
 ];
 
+const DEFAULT_TIMELINE = [
+  { year: "2023", copy: "Started combining code, UI design, and video editing into one creative practice." },
+  { year: "2024", copy: "Built practical systems, brand sites, and language technology projects." },
+  { year: "2025", copy: "Expanded into AI security, advanced interfaces, and cinematic web experiences." },
+  { year: "2026", copy: "Focused on premium interactive portfolios and motion-led product storytelling." }
+];
+
+const DEFAULT_CORE_FOCUS = [
+  { title: "Creative development", subtitle: "Next.js, React, TypeScript, Tailwind CSS" },
+  { title: "Video editing", subtitle: "Premiere Pro, pacing, story, color" },
+  { title: "Cinematic UI", subtitle: "Design systems, layouts, interaction" },
+  { title: "Motion graphics", subtitle: "After Effects, GSAP, Framer Motion" }
+];
+
+const FOCUS_ICONS = [Code2, Film, PenTool, Sparkles];
+
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<any>({ name: "Saransh Chaudhary", role: "Creative Developer", location: "India", bio: "I build cinematic digital experiences, interactive interfaces, and visual stories that blend creativity with technology.", email: "hello@saransh.dev", skills: ["Next.js", "React", "Three.js", "Framer Motion", "GSAP", "Premiere Pro", "After Effects", "Figma", "Python", "Java"] });
+  const [profile, setProfile] = useState<any>({
+    name: "Saransh Chaudhary",
+    role: "Creative Developer",
+    location: "India",
+    bio: "I build cinematic digital experiences, interactive interfaces, and visual stories that blend creativity with technology.",
+    email: "hello@saransh.dev",
+    skills: ["Next.js", "React", "Three.js", "Framer Motion", "GSAP", "Premiere Pro", "After Effects", "Figma", "Python", "Java"],
+    stats: DEFAULT_STATS,
+    timeline: DEFAULT_TIMELINE,
+    coreFocus: DEFAULT_CORE_FOCUS
+  });
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const snap = await getDoc(doc(db, "cinematic_portfolio_data", "main"));
         if (snap.exists()) {
-          setProfile({ ...profile, ...(snap.data().profile || {}) });
+          const data = snap.data();
+          const p = data.profile || {};
+          setProfile((prev: any) => ({
+            ...prev,
+            ...p,
+            stats: p.stats && p.stats.length > 0 ? p.stats : DEFAULT_STATS,
+            timeline: p.timeline && p.timeline.length > 0 ? p.timeline : DEFAULT_TIMELINE,
+            coreFocus: p.coreFocus && p.coreFocus.length > 0 ? p.coreFocus : DEFAULT_CORE_FOCUS
+          }));
         }
       } catch (e) {
         console.error(e);
@@ -49,16 +83,16 @@ export default function ProfilePage() {
           </div>
           <div className="glass rounded-[1.75rem] p-6 flex flex-col justify-center">
             <div className="grid grid-cols-2 gap-4">
-              {[["Projects", "15+"], ["Tools", "20+"], ["Code", "10K+"], ["Motion", "100%"]].map(([label, value]) => (
-                <div key={label} className="rounded-2xl border border-parchment/12 bg-white/5 p-5">
-                  <div className="font-display text-4xl font-black text-ember">{value}</div>
-                  <div className="mt-1 text-xs uppercase tracking-[0.2em] text-parchment/65">{label}</div>
+              {(profile.stats || DEFAULT_STATS).map((stat: any) => (
+                <div key={stat.label} className="rounded-2xl border border-parchment/12 bg-white/5 p-5">
+                  <div className="font-display text-4xl font-black text-ember">{stat.value}</div>
+                  <div className="mt-1 text-xs uppercase tracking-[0.2em] text-parchment/65">{stat.label}</div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-        
+
         {profile.bio2 && (
           <div className="mt-8 glass rounded-[1.5rem] p-8">
             <h2 className="font-display text-2xl font-black uppercase text-pearl mb-4">Extended Origin</h2>
@@ -70,17 +104,12 @@ export default function ProfilePage() {
           <section className="glass rounded-[1.5rem] p-6">
             <h2 className="font-display text-2xl font-black uppercase text-pearl">Core Focus</h2>
             <div className="mt-5 grid gap-4">
-              {[
-                [Code2, "Creative development", "Next.js, React, TypeScript, Tailwind CSS"],
-                [Film, "Video editing", "Premiere Pro, pacing, story, color"],
-                [PenTool, "Cinematic UI", "Design systems, layouts, interaction"],
-                [Sparkles, "Motion graphics", "After Effects, GSAP, Framer Motion"]
-              ].map(([Icon, title, copy]) => {
-                const SkillIcon = Icon as typeof Code2;
+              {(profile.coreFocus || DEFAULT_CORE_FOCUS).map((item: any, i: number) => {
+                const Icon = FOCUS_ICONS[i % FOCUS_ICONS.length];
                 return (
-                  <div key={title as string} className="flex gap-4 rounded-2xl border border-parchment/12 bg-black/25 p-4">
-                    <SkillIcon className="h-6 w-6 shrink-0 text-ember" />
-                    <div><p className="font-semibold text-pearl">{title as string}</p><p className="text-sm text-parchment/70">{copy as string}</p></div>
+                  <div key={item.title} className="flex gap-4 rounded-2xl border border-parchment/12 bg-black/25 p-4">
+                    <Icon className="h-6 w-6 shrink-0 text-ember" />
+                    <div><p className="font-semibold text-pearl">{item.title}</p><p className="text-sm text-parchment/70">{item.subtitle}</p></div>
                   </div>
                 );
               })}
@@ -90,14 +119,14 @@ export default function ProfilePage() {
               <a href={`mailto:${profile.email}`} className="text-ember font-semibold hover:text-white transition">{profile.email}</a>
             </div>
           </section>
-          
+
           <section className="glass rounded-[1.5rem] p-6">
             <h2 className="font-display text-2xl font-black uppercase text-pearl">Timeline</h2>
             <div className="mt-6 space-y-4">
-              {timeline.map(([year, copy]) => (
-                <div key={year} className="grid gap-4 rounded-2xl border border-parchment/12 bg-white/5 p-5 sm:grid-cols-[120px_1fr]">
-                  <span className="font-display text-3xl font-black text-ember">{year}</span>
-                  <p className="leading-7 text-parchment/76">{copy}</p>
+              {(profile.timeline || DEFAULT_TIMELINE).map((entry: any) => (
+                <div key={entry.year} className="grid gap-4 rounded-2xl border border-parchment/12 bg-white/5 p-5 sm:grid-cols-[120px_1fr]">
+                  <span className="font-display text-3xl font-black text-ember">{entry.year}</span>
+                  <p className="leading-7 text-parchment/76">{entry.copy}</p>
                 </div>
               ))}
             </div>

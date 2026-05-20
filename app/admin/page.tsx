@@ -22,7 +22,7 @@ export default function AdminPage() {
   const [gallery, setGallery] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
-  const [profile, setProfile] = useState<any>({ name: "", role: "", location: "", bio: "", bio2: "", email: "", avatarUrl: "", skills: [] });
+  const [profile, setProfile] = useState<any>({ name: "", role: "", location: "", bio: "", bio2: "", email: "", avatarUrl: "", skills: [], stats: [], timeline: [], coreFocus: [] });
   const [socials, setSocials] = useState<any>({
     email: "hello@saransh.dev",
     github: "https://github.com/SaranshChaudhary17",
@@ -31,6 +31,27 @@ export default function AdminPage() {
     linkedinUser: "Saransh Chaudhary",
     instagram: "https://instagram.com",
     instagramUser: "Creative visuals"
+  });
+  const [githubData, setGithubData] = useState<any>({
+    profileName: "Saransh Chaudhary",
+    profileHandle: "@SaranshChaudhary17",
+    profileUrl: "https://github.com/SaranshChaudhary17",
+    repos: "52",
+    followers: "128",
+    following: "45",
+    stars: "89",
+    contributions: "1,248 Contributions",
+    streak: "27 Day streak",
+    commits: "82 Commits/month",
+    recentActivity: ["Updated cinematic project pages", "Added 3D portfolio interaction", "Improved responsive UI", "Optimized animation timing", "Refined GitHub dashboard"],
+    languages: [
+      { name: "JavaScript", value: "35.6%", color: "bg-ember" },
+      { name: "TypeScript", value: "20.3%", color: "bg-denim" },
+      { name: "Python", value: "15.1%", color: "bg-linen" },
+      { name: "Java", value: "10.8%", color: "bg-burnt" },
+      { name: "HTML/CSS", value: "8.2%", color: "bg-steel" },
+      { name: "Other", value: "10.0%", color: "bg-parchment" }
+    ]
   });
 
   // Edit states
@@ -57,7 +78,8 @@ export default function AdminPage() {
         setGallery(data.gallery || []);
         setVideos(data.videos || []);
         setMessages(data.messages || []);
-        setProfile(data.profile || { name: "", role: "", location: "", bio: "", bio2: "", email: "", avatarUrl: "", skills: [] });
+        const p = data.profile || {};
+        setProfile({ name: "", role: "", location: "", bio: "", bio2: "", email: "", avatarUrl: "", skills: [], stats: [], timeline: [], coreFocus: [], ...p });
         setSocials(data.socials || {
           email: data.profile?.email || "hello@saransh.dev",
           github: "https://github.com/SaranshChaudhary17",
@@ -67,6 +89,7 @@ export default function AdminPage() {
           instagram: "https://instagram.com",
           instagramUser: "Creative visuals"
         });
+        if (data.github) setGithubData((prev: any) => ({ ...prev, ...data.github }));
       } else {
         await setDoc(docRef, { projects: [], gallery: [], videos: [], messages: [], profile: {}, socials: {} });
       }
@@ -152,6 +175,28 @@ export default function AdminPage() {
     } catch (e) {
       console.error(e);
       setError("Failed to save social links.");
+    }
+  };
+
+  const handleSaveGithub = async () => {
+    try {
+      const docRef = doc(db, "cinematic_portfolio_data", "main");
+      await updateDoc(docRef, { github: githubData });
+      showSuccess();
+    } catch (e) {
+      console.error(e);
+      setError("Failed to save GitHub data.");
+    }
+  };
+
+  const handleSaveProfileExtended = async () => {
+    try {
+      const docRef = doc(db, "cinematic_portfolio_data", "main");
+      await updateDoc(docRef, { profile });
+      showSuccess();
+    } catch (e) {
+      console.error(e);
+      setError("Failed to save profile.");
     }
   };
 
@@ -373,6 +418,7 @@ export default function AdminPage() {
     { id: "gallery", label: "Gallery", icon: ImageIcon },
     { id: "videos", label: "Videos", icon: Video },
     { id: "profile", label: "Profile", icon: User },
+    { id: "github", label: "GitHub", icon: Github },
     { id: "messages", label: "Messages", icon: Mail },
     { id: "settings", label: "Settings", icon: Settings },
   ];
@@ -484,7 +530,11 @@ export default function AdminPage() {
                 {showProjectForm ? "Edit Project" : showVideoForm ? "Add Video" : tabs.find(t => t.id === activeTab)?.label}
               </h2>
               {activeTab === "profile" && !showProjectForm && (
-                <Button onClick={handleSaveProfile} className="gap-2"><Save className="h-4 w-4" /> Save Profile</Button>
+                <Button onClick={handleSaveProfileExtended} className="gap-2"><Save className="h-4 w-4" /> Save Profile</Button>
+              )}
+              {activeTab === "github" && (
+                <Button onClick={handleSaveGithub} className="gap-2"><Save className="h-4 w-4" /> Save GitHub
+                </Button>
               )}
               {activeTab === "projects" && !showProjectForm && (
                 <Button onClick={() => { setEditingProject({ tech: "", galleryUrls: [] }); setShowProjectForm(true); }} className="gap-2"><Plus className="h-4 w-4" /> Add Project</Button>
@@ -813,73 +863,183 @@ export default function AdminPage() {
 
                 {/* 5. Profile */}
                 {activeTab === "profile" && (
-                  <div className="grid lg:grid-cols-[1fr_0.8fr] gap-8">
-                    <div className="space-y-5">
-                      <h3 className="text-lg font-display font-bold text-pearl uppercase">Personal Info</h3>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Display Name</label><input type="text" value={profile.name || ""} onChange={e => setProfile({...profile, name: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
-                        <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Job Role / Title</label><input type="text" value={profile.role || ""} onChange={e => setProfile({...profile, role: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
-                        <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Location</label><input type="text" value={profile.location || ""} onChange={e => setProfile({...profile, location: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
-                        <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Email Signal</label><input type="email" value={profile.email || ""} onChange={e => setProfile({...profile, email: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
+                  <div className="space-y-10">
+                    {/* Personal Info + Avatar */}
+                    <div className="grid lg:grid-cols-[1fr_0.8fr] gap-8">
+                      <div className="space-y-5">
+                        <h3 className="text-lg font-display font-bold text-pearl uppercase">Personal Info</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Display Name</label><input type="text" value={profile.name || ""} onChange={e => setProfile({...profile, name: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
+                          <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Job Role / Title</label><input type="text" value={profile.role || ""} onChange={e => setProfile({...profile, role: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
+                          <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Location</label><input type="text" value={profile.location || ""} onChange={e => setProfile({...profile, location: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
+                          <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Email Signal</label><input type="email" value={profile.email || ""} onChange={e => setProfile({...profile, email: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
+                        </div>
+                        <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Bio (Short)</label><textarea rows={2} value={profile.bio || ""} onChange={e => setProfile({...profile, bio: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50"></textarea></div>
+                        <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Bio 2 (Extended Story)</label><textarea rows={4} value={profile.bio2 || ""} onChange={e => setProfile({...profile, bio2: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50"></textarea></div>
                       </div>
-                      <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Bio (Short)</label><textarea rows={2} value={profile.bio || ""} onChange={e => setProfile({...profile, bio: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50"></textarea></div>
-                      <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Bio 2 (Extended Story)</label><textarea rows={4} value={profile.bio2 || ""} onChange={e => setProfile({...profile, bio2: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50"></textarea></div>
-                    </div>
-                    
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-lg font-display font-bold text-pearl uppercase mb-4">Avatar</h3>
-                        <div className="flex items-center gap-6">
-                          <div className="h-24 w-24 rounded-full border border-parchment/20 bg-black/40 overflow-hidden flex-shrink-0">
-                            {profile.avatarUrl ? <img src={profile.avatarUrl} className="w-full h-full object-cover" /> : <User className="h-10 w-10 m-7 text-parchment/20"/>}
-                          </div>
-                          <div className="flex-1 space-y-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <label className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-parchment/10 rounded-xl hover:bg-white/10 cursor-pointer transition text-xs font-semibold text-pearl">
-                                {uploading === "avatar" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />} Upload from device
-                                <input type="file" accept="image/*" className="hidden" onChange={e => handleFileUpload(e, "avatar")} disabled={uploading !== false} />
-                              </label>
-                              <span className="text-[10px] text-parchment/40 font-bold uppercase tracking-wider">or</span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  openCloudinaryMediaLibrary((urls) => {
-                                    setProfile((prev: any) => ({ ...prev, avatarUrl: urls[0] }));
-                                  });
-                                }}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-parchment/10 rounded-xl hover:bg-white/10 text-xs font-semibold text-pearl transition duration-300"
-                              >
-                                <UploadCloud className="h-4 w-4" /> Cloudinary Library
-                              </button>
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-lg font-display font-bold text-pearl uppercase mb-4">Avatar</h3>
+                          <div className="flex items-center gap-6">
+                            <div className="h-24 w-24 rounded-full border border-parchment/20 bg-black/40 overflow-hidden flex-shrink-0">
+                              {profile.avatarUrl ? <img src={profile.avatarUrl} className="w-full h-full object-cover" /> : <User className="h-10 w-10 m-7 text-parchment/20"/>}
                             </div>
-                            <p className="text-[10px] text-parchment/50">Supports either device upload, Cloudinary browsing, or direct hosted image links.</p>
+                            <div className="flex-1 space-y-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <label className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-parchment/10 rounded-xl hover:bg-white/10 cursor-pointer transition text-xs font-semibold text-pearl">
+                                  {uploading === "avatar" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />} Upload from device
+                                  <input type="file" accept="image/*" className="hidden" onChange={e => handleFileUpload(e, "avatar")} disabled={uploading !== false} />
+                                </label>
+                                <span className="text-[10px] text-parchment/40 font-bold uppercase tracking-wider">or</span>
+                                <button type="button" onClick={() => { openCloudinaryMediaLibrary((urls) => { setProfile((prev: any) => ({ ...prev, avatarUrl: urls[0] })); }); }} className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-parchment/10 rounded-xl hover:bg-white/10 text-xs font-semibold text-pearl transition duration-300">
+                                  <UploadCloud className="h-4 w-4" /> Cloudinary Library
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-lg font-display font-bold text-pearl uppercase mb-4">Dynamic Skills</h3>
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {(profile.skills || []).map((skill: string) => (
-                            <span key={skill} className="bg-ember/10 border border-ember/20 text-ember px-3 py-1 rounded-full text-xs flex items-center gap-2">
-                              {skill} <button type="button" onClick={() => handleRemoveSkill(skill)} className="hover:text-white"><X className="h-3 w-3"/></button>
-                            </span>
-                          ))}
+                        <div>
+                          <h3 className="text-lg font-display font-bold text-pearl uppercase mb-4">Dynamic Skills</h3>
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {(profile.skills || []).map((skill: string) => (
+                              <span key={skill} className="bg-ember/10 border border-ember/20 text-ember px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                                {skill} <button type="button" onClick={() => handleRemoveSkill(skill)} className="hover:text-white"><X className="h-3 w-3"/></button>
+                              </span>
+                            ))}
+                          </div>
+                          <input type="text" placeholder="Type a skill and press Enter..." value={newSkill} onChange={e => setNewSkill(e.target.value)} onKeyDown={handleAddSkill} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50 text-sm" />
                         </div>
-                        <input 
-                          type="text" 
-                          placeholder="Type a skill and press Enter..." 
-                          value={newSkill} 
-                          onChange={e => setNewSkill(e.target.value)} 
-                          onKeyDown={handleAddSkill}
-                          className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50 text-sm" 
-                        />
+                      </div>
+                    </div>
+
+                    {/* Stats Grid Editor */}
+                    <div className="p-5 rounded-2xl border border-parchment/12 bg-black/20">
+                      <h3 className="font-bold text-pearl text-sm uppercase tracking-widest mb-4">Profile Stats (the 4 boxes)</h3>
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {(profile.stats && profile.stats.length > 0 ? profile.stats : [{label:"Projects",value:"15+"},{label:"Tools",value:"20+"},{label:"Code",value:"10K+"},{label:"Motion",value:"100%"}]).map((stat: any, i: number) => (
+                          <div key={i} className="space-y-2 p-3 rounded-xl bg-black/20 border border-parchment/10">
+                            <input type="text" placeholder="Label" value={stat.label} onChange={e => { const s = [...(profile.stats || [{label:"Projects",value:"15+"},{label:"Tools",value:"20+"},{label:"Code",value:"10K+"},{label:"Motion",value:"100%"}])]; s[i] = {...s[i], label: e.target.value}; setProfile({...profile, stats: s}); }} className="w-full rounded-lg border border-parchment/12 bg-black/40 px-3 py-2 text-xs text-parchment/80 outline-none focus:border-ember/50" />
+                            <input type="text" placeholder="Value" value={stat.value} onChange={e => { const s = [...(profile.stats || [{label:"Projects",value:"15+"},{label:"Tools",value:"20+"},{label:"Code",value:"10K+"},{label:"Motion",value:"100%"}])]; s[i] = {...s[i], value: e.target.value}; setProfile({...profile, stats: s}); }} className="w-full rounded-lg border border-ember/20 bg-black/40 px-3 py-2 text-lg font-black text-ember outline-none focus:border-ember/50" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Timeline Editor */}
+                    <div className="p-5 rounded-2xl border border-parchment/12 bg-black/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-pearl text-sm uppercase tracking-widest">Timeline Entries</h3>
+                        <button type="button" onClick={() => setProfile({...profile, timeline: [...(profile.timeline || []), {year: "", copy: ""}]})} className="flex items-center gap-2 rounded-xl bg-ember/10 border border-ember/20 text-ember px-3 py-2 text-xs font-semibold hover:bg-ember/20 transition"><Plus className="h-3 w-3" /> Add Entry</button>
+                      </div>
+                      <div className="space-y-3">
+                        {(profile.timeline || []).map((entry: any, i: number) => (
+                          <div key={i} className="flex gap-3 items-start p-3 rounded-xl bg-black/20 border border-parchment/10">
+                            <input type="text" placeholder="Year" value={entry.year} onChange={e => { const t = [...profile.timeline]; t[i] = {...t[i], year: e.target.value}; setProfile({...profile, timeline: t}); }} className="w-20 shrink-0 rounded-lg border border-ember/20 bg-black/40 px-3 py-2 text-sm font-black text-ember outline-none focus:border-ember/50" />
+                            <input type="text" placeholder="Description..." value={entry.copy} onChange={e => { const t = [...profile.timeline]; t[i] = {...t[i], copy: e.target.value}; setProfile({...profile, timeline: t}); }} className="flex-1 rounded-lg border border-parchment/12 bg-black/40 px-3 py-2 text-sm text-pearl outline-none focus:border-ember/50" />
+                            <button type="button" onClick={() => setProfile({...profile, timeline: profile.timeline.filter((_: any, idx: number) => idx !== i)})} className="p-2 text-red-400 hover:text-red-300 transition"><Trash className="h-4 w-4" /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Core Focus Editor */}
+                    <div className="p-5 rounded-2xl border border-parchment/12 bg-black/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-pearl text-sm uppercase tracking-widest">Core Focus Items</h3>
+                        <button type="button" onClick={() => setProfile({...profile, coreFocus: [...(profile.coreFocus || []), {title: "", subtitle: ""}]})} className="flex items-center gap-2 rounded-xl bg-ember/10 border border-ember/20 text-ember px-3 py-2 text-xs font-semibold hover:bg-ember/20 transition"><Plus className="h-3 w-3" /> Add Item</button>
+                      </div>
+                      <div className="space-y-3">
+                        {(profile.coreFocus || []).map((item: any, i: number) => (
+                          <div key={i} className="flex gap-3 items-center p-3 rounded-xl bg-black/20 border border-parchment/10">
+                            <div className="flex-1 grid sm:grid-cols-2 gap-3">
+                              <input type="text" placeholder="Title (e.g. Creative development)" value={item.title} onChange={e => { const c = [...profile.coreFocus]; c[i] = {...c[i], title: e.target.value}; setProfile({...profile, coreFocus: c}); }} className="rounded-lg border border-parchment/12 bg-black/40 px-3 py-2 text-sm text-pearl outline-none focus:border-ember/50" />
+                              <input type="text" placeholder="Subtitle (tools, skills...)" value={item.subtitle} onChange={e => { const c = [...profile.coreFocus]; c[i] = {...c[i], subtitle: e.target.value}; setProfile({...profile, coreFocus: c}); }} className="rounded-lg border border-parchment/12 bg-black/40 px-3 py-2 text-sm text-parchment/70 outline-none focus:border-ember/50" />
+                            </div>
+                            <button type="button" onClick={() => setProfile({...profile, coreFocus: profile.coreFocus.filter((_: any, idx: number) => idx !== i)})} className="p-2 text-red-400 hover:text-red-300 transition"><Trash className="h-4 w-4" /></button>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* 6. Messages */}
+                {/* 6. GitHub Editor */}
+                {activeTab === "github" && (
+                  <div className="space-y-8">
+                    {/* Profile Info */}
+                    <div className="p-5 rounded-2xl border border-parchment/12 bg-black/20 space-y-4">
+                      <h3 className="font-bold text-pearl text-sm uppercase tracking-widest">GitHub Profile</h3>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Display Name</label><input type="text" value={githubData.profileName || ""} onChange={e => setGithubData({...githubData, profileName: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
+                        <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Handle (e.g. @User)</label><input type="text" value={githubData.profileHandle || ""} onChange={e => setGithubData({...githubData, profileHandle: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
+                        <div className="md:col-span-2"><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Profile URL</label><input type="url" value={githubData.profileUrl || ""} onChange={e => setGithubData({...githubData, profileUrl: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="p-5 rounded-2xl border border-parchment/12 bg-black/20 space-y-4">
+                      <h3 className="font-bold text-pearl text-sm uppercase tracking-widest">Profile Stats</h3>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        {["repos", "followers", "following", "stars"].map((key) => (
+                          <div key={key} className="space-y-1">
+                            <label className="block text-xs uppercase tracking-widest text-parchment/60 capitalize">{key}</label>
+                            <input type="text" value={githubData[key] || ""} onChange={e => setGithubData({...githubData, [key]: e.target.value})} className="w-full rounded-xl border border-ember/20 bg-black/40 px-4 py-3 text-xl font-black text-pearl outline-none focus:border-ember/50" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Contribution Stats */}
+                    <div className="p-5 rounded-2xl border border-parchment/12 bg-black/20 space-y-4">
+                      <h3 className="font-bold text-pearl text-sm uppercase tracking-widest">Contribution Stats</h3>
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Total Contributions</label><input type="text" value={githubData.contributions || ""} onChange={e => setGithubData({...githubData, contributions: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
+                        <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Day Streak</label><input type="text" value={githubData.streak || ""} onChange={e => setGithubData({...githubData, streak: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
+                        <div><label className="block text-xs uppercase tracking-widest text-parchment/60 mb-2">Commits/Month</label><input type="text" value={githubData.commits || ""} onChange={e => setGithubData({...githubData, commits: e.target.value})} className="w-full rounded-xl border border-parchment/12 bg-black/40 px-4 py-3 text-pearl outline-none focus:border-ember/50" /></div>
+                      </div>
+                    </div>
+
+                    {/* Recent Activity */}
+                    <div className="p-5 rounded-2xl border border-parchment/12 bg-black/20 space-y-4">
+                      <h3 className="font-bold text-pearl text-sm uppercase tracking-widest">Recent Activity (5 commit lines)</h3>
+                      <div className="space-y-3">
+                        {(githubData.recentActivity || ["","","","",""]).map((line: string, i: number) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <span className="font-mono text-xs text-ember w-6 shrink-0">{String(i+1).padStart(2,"0")}</span>
+                            <input type="text" value={line} onChange={e => { const a = [...(githubData.recentActivity || ["","","","",""])]; a[i] = e.target.value; setGithubData({...githubData, recentActivity: a}); }} className="flex-1 rounded-xl border border-parchment/12 bg-black/40 px-4 py-2.5 text-sm text-pearl outline-none focus:border-ember/50 font-mono" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Language Stats */}
+                    <div className="p-5 rounded-2xl border border-parchment/12 bg-black/20 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-pearl text-sm uppercase tracking-widest">Language Stats</h3>
+                        <button type="button" onClick={() => setGithubData({...githubData, languages: [...(githubData.languages || []), {name: "", value: "0%", color: "bg-ember"}]})} className="flex items-center gap-2 rounded-xl bg-ember/10 border border-ember/20 text-ember px-3 py-2 text-xs font-semibold hover:bg-ember/20 transition"><Plus className="h-3 w-3" /> Add Language</button>
+                      </div>
+                      <div className="space-y-3">
+                        {(githubData.languages || []).map((lang: any, i: number) => (
+                          <div key={i} className="flex gap-3 items-center p-3 rounded-xl bg-black/20 border border-parchment/10">
+                            <input type="text" placeholder="Language" value={lang.name} onChange={e => { const l = [...githubData.languages]; l[i] = {...l[i], name: e.target.value}; setGithubData({...githubData, languages: l}); }} className="flex-1 rounded-lg border border-parchment/12 bg-black/40 px-3 py-2 text-sm text-pearl outline-none focus:border-ember/50" />
+                            <input type="text" placeholder="35.6%" value={lang.value} onChange={e => { const l = [...githubData.languages]; l[i] = {...l[i], value: e.target.value}; setGithubData({...githubData, languages: l}); }} className="w-20 rounded-lg border border-ember/20 bg-black/40 px-3 py-2 text-sm font-bold text-ember outline-none focus:border-ember/50" />
+                            <select value={lang.color} onChange={e => { const l = [...githubData.languages]; l[i] = {...l[i], color: e.target.value}; setGithubData({...githubData, languages: l}); }} className="rounded-lg border border-parchment/12 bg-black/40 px-2 py-2 text-xs text-pearl outline-none focus:border-ember/50">
+                              <option value="bg-ember">Orange</option>
+                              <option value="bg-denim">Blue</option>
+                              <option value="bg-linen">Linen</option>
+                              <option value="bg-burnt">Burnt</option>
+                              <option value="bg-steel">Steel</option>
+                              <option value="bg-parchment">Parchment</option>
+                            </select>
+                            <button type="button" onClick={() => setGithubData({...githubData, languages: githubData.languages.filter((_: any, idx: number) => idx !== i)})} className="p-2 text-red-400 hover:text-red-300 transition"><Trash className="h-4 w-4" /></button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 7. Messages */}
                 {activeTab === "messages" && (
                   <div className="space-y-4">
                     {messages.length === 0 && <p className="text-parchment/60">No transmissions received yet.</p>}
