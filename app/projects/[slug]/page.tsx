@@ -6,9 +6,6 @@ import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-export function generateStaticParams() {
-  return staticProjects.map((p) => ({ slug: p.slug }));
-}
 
 const aliasMap: Record<string, string> = {
   "project-one": "rotana-media-group",

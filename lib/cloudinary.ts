@@ -14,7 +14,7 @@ export function uploadToCloudinary(
   onProgress?: (progress: number) => void
 ): Promise<CloudinaryUploadResponse> {
   return new Promise((resolve, reject) => {
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dk30ucgnk";
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dp6ll9ckq";
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "portfolio";
 
     const isVideo = file.type.startsWith("video/");
