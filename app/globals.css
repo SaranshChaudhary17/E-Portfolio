@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+:root { --accent: #E8751A; }
+html { background: #0D0D0D; }
+body { font-family: var(--font-mono), monospace; color: #F4F2EE; overflow-x: hidden; }
+::selection { background: var(--accent); color: #000; }
+@media (prefers-reduced-motion: reduce) { .animate-ticker { animation: none; } }
+
+@media (pointer: fine) {
+  body:not(.malik-mode) *, body:not(.malik-mode) *::before, body:not(.malik-mode) *::after {
+    cursor: none !important;
+  }
+}
+
+.malik-mode, .malik-mode *, .malik-mode *::before, .malik-mode *::after {
+  cursor: auto !important;
+}
+.malik-mode a, .malik-mode button, .malik-mode [role="button"], .malik-mode input[type="button"], .malik-mode input[type="submit"] {
+  cursor: pointer !important;
+}
+.malik-mode input[type="text"], .malik-mode textarea {
+  cursor: text !important;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
