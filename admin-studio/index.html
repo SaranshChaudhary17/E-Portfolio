@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SARANSH.VE</title>
+  <link rel="icon" type="image/png" href="/ve_logo.png" />
+  <link rel="apple-touch-icon" href="/ve_logo.png" />
+  <script>
+    window.addEventListener('error', function (e) {
+      console.error('Captured window error:', e);
+      var errDiv = document.getElementById('debug-error');
+      if (!errDiv) {
+        errDiv = document.createElement('div');
+        errDiv.id = 'debug-error';
+        errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:20px;background:#fee2e2;color:#dc2626;font-family:monospace;z-index:99999;border-bottom:2px solid #ef4444;white-space:pre-wrap;';
+        document.body.prepend(errDiv);
+      }
+      errDiv.textContent = 'JavaScript Error: ' + (e.error ? (e.error.stack || e.error.message) : e.message);
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      console.error('Captured promise rejection:', e);
+      var errDiv = document.getElementById('debug-error');
+      if (!errDiv) {
+        errDiv = document.createElement('div');
+        errDiv.id = 'debug-error';
+        errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:20px;background:#fee2e2;color:#dc2626;font-family:monospace;z-index:99999;border-bottom:2px solid #ef4444;white-space:pre-wrap;';
+        document.body.prepend(errDiv);
+      }
+      errDiv.textContent = 'Unhandled Rejection: ' + (e.reason ? (e.reason.stack || e.reason.message || e.reason) : 'Unknown');
+    });
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

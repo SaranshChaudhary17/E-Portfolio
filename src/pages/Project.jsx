@@ -1,0 +1,9 @@
+import {useParams,Link} from 'react-router-dom';import Seo from '../components/Seo';import VideoPlayer from '../components/VideoPlayer';import {useContent} from '../components/Content';import NotFound from './NotFound';
+export default function Project(){const{slug}=useParams();const{projects,loading}=useContent();if(loading)return <div className="wrap py-32"><div className="aspect-video rounded-2xl bg-soft animate-pulse"/></div>;const i=projects.findIndex(p=>p.slug===slug);if(i<0)return <NotFound/>;const p=projects[i],prev=projects[(i-1+projects.length)%projects.length],next=projects[(i+1)%projects.length];
+return <article className="wrap py-16"><Seo title={p.title} desc={p.description} path={`/work/${p.slug}`}/>
+<p className="text-sm text-mute">{p.category} · {p.year}{p.client&&` · ${p.client}`}</p><h1 className="display !text-[clamp(2.2rem,7vw,5.5rem)] mt-3">{p.title}</h1><p className="text-mute mt-4 max-w-xl">{p.description}</p>
+<div className="mt-10"><VideoPlayer src={p.videoUrl} poster={p.poster} portrait={p.orientation==='portrait'} label={p.title}/></div>
+<div className="grid md:grid-cols-2 gap-10 mt-14"><div><h2 className="font-bold">Overview</h2><p className="text-mute mt-2">{p.overview}</p><h2 className="font-bold mt-6">Creative Direction</h2><p className="text-mute mt-2">{p.creativeDirection}</p></div>
+<div><h2 className="font-bold">My Role</h2><p className="text-mute mt-2">{p.role}</p><h2 className="font-bold mt-6">Software</h2><p className="text-mute mt-2">{p.software.join(', ')}</p></div></div>
+{p.additionalMedia.map((m,k)=><div key={k} className="mt-10"><VideoPlayer src={m.videoUrl} poster={m.poster} label={m.title}/></div>)}
+<nav aria-label="Project navigation" className="flex flex-wrap justify-between gap-4 mt-16 pt-8 border-t border-line text-sm font-semibold"><Link to={`/work/${prev.slug}`}>← {prev.title}</Link><Link to="/work">All Work</Link><Link to={`/work/${next.slug}`}>{next.title} →</Link></nav></article>}

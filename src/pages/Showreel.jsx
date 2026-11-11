@@ -1,0 +1,4 @@
+import Seo from '../components/Seo';import VideoPlayer from '../components/VideoPlayer';import ProjectCard from '../components/ProjectCard';import {useContent} from '../components/Content';
+export default function Showreel(){const{site,projects}=useContent();if(!site.showreel.url)return <div className="wrap py-32"><Seo title="Showreel" path="/showreel"/><h1 className="h2">Showreel</h1><p className="text-mute mt-3">No showreel has been published yet.</p></div>;return <div className="wrap py-16"><Seo title="Showreel" path="/showreel"/><VideoPlayer src={site.showreel.url} poster={site.showreel.poster} label="Showreel"/>
+<h1 className="h2 mt-8">{site.showreel.title||'Showreel'}</h1><p className="text-mute mt-2 max-w-xl">{site.showreel.description}</p>
+<h2 className="font-bold mt-16 mb-6">Featured Projects</h2><div className="grid sm:grid-cols-3 gap-8">{projects.filter(p=>p.featured).slice(0,3).map((p,i)=><ProjectCard key={p.id} p={p} i={i}/>)}</div></div>}

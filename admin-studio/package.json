@@ -1,0 +1,41 @@
+{
+  "name": "saransh-ve-admin",
+  "productName": "SARANSH.VE",
+  "version": "0.1.0",
+  "private": true,
+  "main": "electron/main.cjs",
+  "description": "SARANSH.VE Creative Control Center.",
+  "scripts": {
+    "dev": "vite",
+    "electron": "cmd /c \"set ELECTRON_RUN_AS_NODE=&& electron .\"",
+    "build": "vite build",
+    "dist": "vite build && electron-builder --win nsis --x64"
+  },
+  "build": {
+    "appId": "com.saranshve.admin",
+    "productName": "SARANSH.VE",
+    "files": [
+      "dist/**",
+      "electron/**"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "artifactName": "SARANSH.VE-Setup.exe"
+    }
+  },
+  "dependencies": {
+    "firebase": "^13.2.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "@vitejs/plugin-react": "^6.3.0",
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
+    "tailwindcss": "^4.3.5",
+    "vite": "^8.3.7"
+  }
+}
