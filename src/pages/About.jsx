@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import Seo from '../components/Seo';
 import { useContent } from '../components/Content';
+import RichText from '../components/RichText';
 
 export default function About() {
   const { site, loading } = useContent();
@@ -51,34 +52,33 @@ export default function About() {
 
         <div className="space-y-6 text-mute">
           {site.bio && (
-            <p className="text-lg text-ink font-medium leading-relaxed whitespace-pre-line">
-              {site.bio}
-            </p>
+            <RichText text={site.bio} className="text-lg text-ink font-medium" />
           )}
 
           {site.intro && (
-            <div className="whitespace-pre-line leading-relaxed space-y-4">
-              {site.intro}
-            </div>
+            <RichText text={site.intro} />
           )}
 
           {site.philosophy && (
             <div className="pt-4 border-t border-line">
               <p className="text-ink font-bold text-base mb-2">Philosophy.</p>
-              <p className="whitespace-pre-line leading-relaxed">{site.philosophy}</p>
+              <RichText text={site.philosophy} />
             </div>
           )}
 
           {site.tools && site.tools.length > 0 && (
             <div className="pt-4">
               <p className="text-xs uppercase tracking-wider text-ink font-bold mb-3">Tools & Software</p>
-              <ul className="flex flex-wrap gap-2">
+              <ul className="flex flex-wrap gap-3">
                 {site.tools.map((t) => (
                   <li
-                    key={t}
-                    className="px-4 py-2 border border-line rounded-full text-sm text-ink bg-white font-medium shadow-xs"
+                    key={t.id || t.name}
+                    className="flex flex-col items-center justify-center gap-2 px-4 py-3 border border-line rounded-2xl text-sm text-ink bg-white font-medium shadow-xs min-w-[105px] text-center"
                   >
-                    {t}
+                    {t.icon && (
+                      <img src={t.icon} alt={t.name} className="size-8 object-contain" />
+                    )}
+                    <span>{t.name}</span>
                   </li>
                 ))}
               </ul>

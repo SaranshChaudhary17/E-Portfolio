@@ -237,7 +237,11 @@ export function ContentProvider({ children }) {
     bio: prof.shortBio || '',
     intro: prof.introduction || '',
     philosophy: prof.philosophy || '',
-    tools: (data.skills || []).sort(byOrder).map((x) => x.name),
+    tools: (data.skills || []).sort(byOrder).map((x) => ({
+      id: x.id,
+      name: x.name,
+      icon: getThumbnailUrl(x.iconMediaId) || getMediaUrl(x.iconMediaId),
+    })),
     available: !!set.availability,
     showreel: {
       url: getMediaUrl(r.videoMediaId),

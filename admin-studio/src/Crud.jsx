@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   collection,
   doc,
@@ -14,6 +14,7 @@ import {
 import { db } from './fb';
 import { useMedia } from './useMedia';
 import { uploadFile } from './uploader';
+import RichTextField from './RichTextField';
 
 // Tag Input supporting Enter, Comma, Backspace and Paste
 function TagInput({ value = [], onChange, placeholder = 'Type and press Enter or comma…' }) {
@@ -337,7 +338,7 @@ function Field({ f, v, set, media, refs }) {
   const o = f.type;
 
   if (o === 'area')
-    return <textarea rows="4" className={c} value={v || ''} onChange={(e) => set(e.target.value)} />;
+    return <RichTextField value={v || ''} onChange={set} />;
   if (o === 'num')
     return <input type="number" className={c} value={v ?? 0} onChange={(e) => set(+e.target.value)} />;
   if (o === 'bool')
@@ -443,11 +444,13 @@ export default function Crud({ coll, title, fields, defaults = {}, noAdd, noDele
   const [dragIdx, setDragIdx] = useState(null);
   const [overIdx, setOverIdx] = useState(null);
   const [toast, setToast] = useState('');
+  const [expandedId, setExpandedId] = useState(null);
   const media = useMedia();
   const mediaMap = Object.fromEntries(media.map((m) => [m.id, m]));
 
   const isProjects = coll === 'projects';
   const isCategories = coll === 'categories';
+  const isEnquiries = coll === 'contactMessages';
   const hasSortOrder = isProjects || isCategories || fields.some((f) => f.k === 'sortOrder');
 
   const resolveThumb = (id) => {
@@ -630,6 +633,16 @@ export default function Crud({ coll, title, fields, defaults = {}, noAdd, noDele
       {shown.length ? (
         <div className="border border-line rounded-xl overflow-x-auto bg-white shadow-sm">
           <table className="w-full text-sm">
+            {isEnquiries && (
+              <thead>
+                <tr className="border-b border-line bg-soft/60 text-left text-[11px] uppercase tracking-wider text-mute">
+                  <th className="py-2.5 px-4">Name / Email</th>
+                  <th className="py-2.5 px-4">Project Type</th>
+                  <th className="py-2.5 px-4">Budget Range</th>
+                  <th className="py-2.5 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+            )}
             {(isProjects || isCategories) && (
               <thead>
                 <tr className="border-b border-line bg-soft/60 text-left text-[11px] uppercase tracking-wider text-mute">
@@ -660,6 +673,79 @@ export default function Crud({ coll, title, fields, defaults = {}, noAdd, noDele
                 const isDragging = dragIdx === idx;
                 const isOver = overIdx === idx && dragIdx !== idx;
                 const catStatus = r.visible === false ? 'Hidden' : 'Visible';
+                const isExpanded = isEnquiries && expandedId === r.id;
+
+                if (isEnquiries) {
+                  const mailHref = r.email
+                    ? `mailto:${encodeURIComponent(r.email)}?subject=${encodeURIComponent(
+                        `Re: ${r.projectType || 'Project Enquiry'} — SARANSH.VE`
+                      )}&body=${encodeURIComponent(
+                        `Hi ${r.name || ''},\n\nThanks for reaching out regarding ${
+                          r.projectType || 'your project'
+                        }.\n\n`
+                      )}`
+                    : '';
+                  return (
+                    <Fragment key={r.id}>
+                      <tr
+                        onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                        className={`border-b border-line last:border-b-0 cursor-pointer transition ${
+                          isExpanded ? 'bg-soft/50' : 'hover:bg-soft/40'
+                        }`}
+                      >
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-ink">{r.name || r.id}</div>
+                          <div className="text-xs text-mute mt-0.5">{r.email || '—'}</div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-ink whitespace-nowrap">
+                          {r.projectType || '—'}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-mute whitespace-nowrap">
+                          {r.budget || '—'}
+                        </td>
+                        <td
+                          className="py-3 px-4 text-right whitespace-nowrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            className="btn btn-d text-xs py-1 px-2.5 cursor-pointer"
+                            onClick={() => del(r)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="border-b border-line bg-soft/30">
+                          <td colSpan={4} className="px-5 py-4">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                              <div className="space-y-1.5 flex-1">
+                                <p className="text-[11px] uppercase tracking-wider font-semibold text-mute">
+                                  Project Description
+                                </p>
+                                <p className="text-sm text-ink whitespace-pre-line leading-relaxed">
+                                  {r.message || 'No description provided.'}
+                                </p>
+                              </div>
+                              {mailHref && (
+                                <a
+                                  href={mailHref}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (r.status !== 'Replied') autoSaveField(r, 'status', 'Replied');
+                                  }}
+                                  className="btn btn-p text-xs py-2 px-4 shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  Reply
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                }
 
                 return (
                   <tr
