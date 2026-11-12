@@ -9,6 +9,7 @@ import {
   setDoc,
   getDoc,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from './fb';
 import { useMedia } from './useMedia';
@@ -404,7 +405,7 @@ function Form({ fields, init, onSave, onCancel, title, err }) {
       <h2 className="font-bold text-xl mb-6">{title}</h2>
       <div className="space-y-5">
         {fields.map((f) => (
-          <label key={f.k} className="block text-sm">
+          <div key={f.k} className="block text-sm">
             <span className="text-mute text-xs font-medium block mb-1.5">{f.label}</span>
             <Field
               f={f}
@@ -413,7 +414,7 @@ function Form({ fields, init, onSave, onCancel, title, err }) {
               media={media}
               refs={refs}
             />
-          </label>
+          </div>
         ))}
       </div>
       {err && <p className="text-red-600 text-sm mt-4 font-medium">{err}</p>}
@@ -434,11 +435,37 @@ const clean = (d) => {
   return r;
 };
 
-export default function Crud({ coll, title, fields, defaults = {}, noAdd, noDelete, before, dup }) {
+export default function Crud({ coll, title, fields, defaults = {}, noAdd, noDelete, before }) {
   const [rows, setRows] = useState([]);
   const [edit, setEdit] = useState(null);
   const [err, setErr] = useState('');
   const [s, setS] = useState('');
+  const [dragIdx, setDragIdx] = useState(null);
+  const [overIdx, setOverIdx] = useState(null);
+  const [toast, setToast] = useState('');
+  const media = useMedia();
+  const mediaMap = Object.fromEntries(media.map((m) => [m.id, m]));
+
+  const isProjects = coll === 'projects';
+  const isCategories = coll === 'categories';
+  const hasSortOrder = isProjects || isCategories || fields.some((f) => f.k === 'sortOrder');
+
+  const resolveThumb = (id) => {
+    if (!id) return { src: '', fallback: '' };
+    if (typeof id === 'string' && (id.startsWith('http://') || id.startsWith('https://'))) {
+      return { src: id, fallback: '' };
+    }
+    const item = mediaMap[id];
+    if (!item) return { src: '', fallback: '' };
+    const primary = item.thumbnailUrl || item.secureUrl || item.url || '';
+    const fallback = item.secureUrl || item.url || '';
+    return { src: primary, fallback: fallback !== primary ? fallback : '' };
+  };
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2000);
+  };
 
   useEffect(
     () =>
@@ -446,7 +473,11 @@ export default function Crud({ coll, title, fields, defaults = {}, noAdd, noDele
         setRows(
           x.docs
             .map((d) => ({ id: d.id, ...d.data() }))
-            .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+            .sort((a, b) =>
+              coll === 'contactMessages'
+                ? (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)
+                : (a.sortOrder || 0) - (b.sortOrder || 0)
+            )
         )
       ),
     [coll]
@@ -476,6 +507,52 @@ export default function Crud({ coll, title, fields, defaults = {}, noAdd, noDele
     }
   };
 
+  const autoSaveField = async (row, field, value) => {
+    // Optimistically update local state
+    setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, [field]: value } : r)));
+    try {
+      await updateDoc(doc(db, coll, row.id), {
+        [field]: value,
+        updatedAt: serverTimestamp(),
+      });
+      showToast('Saved');
+    } catch (e) {
+      alert('Failed to update: ' + e.message);
+    }
+  };
+
+  const handleDrop = async (dropIdx) => {
+    if (dragIdx === null || dragIdx === dropIdx) {
+      setDragIdx(null);
+      setOverIdx(null);
+      return;
+    }
+
+    const list = [...rows];
+    const [moved] = list.splice(dragIdx, 1);
+    list.splice(dropIdx, 0, moved);
+
+    setDragIdx(null);
+    setOverIdx(null);
+
+    const updated = list.map((item, idx) => ({ ...item, sortOrder: idx + 1 }));
+    setRows(updated);
+
+    try {
+      const batch = writeBatch(db);
+      updated.forEach((item, idx) => {
+        batch.update(doc(db, coll, item.id), {
+          sortOrder: idx + 1,
+          updatedAt: serverTimestamp(),
+        });
+      });
+      await batch.commit();
+      showToast('Order saved');
+    } catch (e) {
+      alert('Failed to save order: ' + e.message);
+    }
+  };
+
   if (edit)
     return (
       <Form
@@ -489,16 +566,57 @@ export default function Crud({ coll, title, fields, defaults = {}, noAdd, noDele
     );
 
   const shown = rows.filter((r) => JSON.stringify(r).toLowerCase().includes(s.toLowerCase()));
+  const canDrag = hasSortOrder && !s.trim();
+
+  const statusBadge = (st) => {
+    if (st === 'Published' || st === 'Visible')
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (st === 'Draft' || st === 'Hidden')
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+    return 'bg-slate-100 text-slate-600 border-slate-200';
+  };
+
+  const renderActions = (r) => (
+    <td
+      className="py-2.5 px-4 text-right whitespace-nowrap space-x-2"
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <button
+        className="btn text-xs py-1 px-2.5 cursor-pointer"
+        onClick={() => setEdit({ id: r.id, d: r })}
+      >
+        Edit
+      </button>
+      {!noDelete && (
+        <button
+          className="btn btn-d text-xs py-1 px-2.5 cursor-pointer"
+          onClick={() => del(r)}
+        >
+          Delete
+        </button>
+      )}
+    </td>
+  );
 
   return (
     <div>
-      <div className="flex gap-3 mb-4">
+      <div className="flex gap-3 mb-4 items-center">
         <input
           className="inp !w-64"
           placeholder="Search…"
           value={s}
           onChange={(e) => setS(e.target.value)}
         />
+        {canDrag && shown.length > 1 && (
+          <span className="text-xs text-mute hidden sm:inline">
+            Drag rows up/down to change Display Order
+          </span>
+        )}
+        {toast && (
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+            ✓ {toast}
+          </span>
+        )}
         {!noAdd && (
           <button
             className="btn btn-p ml-auto cursor-pointer"
@@ -508,54 +626,250 @@ export default function Crud({ coll, title, fields, defaults = {}, noAdd, noDele
           </button>
         )}
       </div>
+
       {shown.length ? (
-        <div className="border border-line rounded-xl overflow-hidden bg-white shadow-sm">
+        <div className="border border-line rounded-xl overflow-x-auto bg-white shadow-sm">
           <table className="w-full text-sm">
-            <tbody>
-              {shown.map((r) => (
-                <tr key={r.id} className="border-b border-line last:border-b-0 hover:bg-soft transition">
-                  <td className="py-3 px-4 font-medium">{r[fields[0].k] || r.id}</td>
-                  <td className="py-3 px-4 text-mute text-xs">
-                    {r.status ||
-                      (r.visible === false || r.active === false
-                        ? 'Hidden'
-                        : r.categoryName || r.email || '')}
-                  </td>
-                  <td className="py-3 px-4 text-right space-x-2">
-                    <button
-                      className="btn text-xs py-1 px-2.5 cursor-pointer"
-                      onClick={() => setEdit({ id: r.id, d: r })}
-                    >
-                      Edit
-                    </button>
-                    {dup && (
-                      <button
-                        className="btn text-xs py-1 px-2.5 cursor-pointer"
-                        onClick={() =>
-                          setEdit({
-                            d: {
-                              ...clean(r),
-                              [fields[0].k]: r[fields[0].k] + ' (copy)',
-                              slug: '',
-                              status: 'Draft',
-                            },
-                          })
-                        }
-                      >
-                        Duplicate
-                      </button>
-                    )}
-                    {!noDelete && (
-                      <button
-                        className="btn btn-d text-xs py-1 px-2.5 cursor-pointer"
-                        onClick={() => del(r)}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </td>
+            {(isProjects || isCategories) && (
+              <thead>
+                <tr className="border-b border-line bg-soft/60 text-left text-[11px] uppercase tracking-wider text-mute">
+                  <th className="py-2.5 pl-3 pr-1 w-8"></th>
+                  <th className="py-2.5 px-3">{isProjects ? 'Project' : 'Category'}</th>
+                  <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-3 text-center">Display Order</th>
+                  <th className="py-2.5 px-3">{isProjects ? 'Video' : 'Slug'}</th>
+                  {isProjects ? (
+                    <>
+                      <th className="py-2.5 px-3 text-center">Featured</th>
+                      <th className="py-2.5 px-3 text-center">Homepage</th>
+                    </>
+                  ) : (
+                    <th className="py-2.5 px-3 text-center">Visible</th>
+                  )}
+                  <th className="py-2.5 px-4 text-right">Actions</th>
                 </tr>
-              ))}
+              </thead>
+            )}
+            <tbody>
+              {shown.map((r, idx) => {
+                const primaryThumb = isProjects ? resolveThumb(r.thumbnailMediaId) : { src: '', fallback: '' };
+                const posterThumb = isProjects ? resolveThumb(r.posterMediaId) : { src: '', fallback: '' };
+                const videoThumb = isProjects ? resolveThumb(r.primaryVideoId) : { src: '', fallback: '' };
+                const thumb = primaryThumb.src ? primaryThumb : posterThumb.src ? posterThumb : videoThumb;
+                const videoDoc = isProjects ? mediaMap[r.primaryVideoId] : null;
+                const isDragging = dragIdx === idx;
+                const isOver = overIdx === idx && dragIdx !== idx;
+                const catStatus = r.visible === false ? 'Hidden' : 'Visible';
+
+                return (
+                  <tr
+                    key={r.id}
+                    draggable={canDrag}
+                    onDragStart={(e) => {
+                      setDragIdx(idx);
+                      e.dataTransfer.effectAllowed = 'move';
+                    }}
+                    onDragOver={(e) => {
+                      if (!canDrag) return;
+                      e.preventDefault();
+                      if (overIdx !== idx) setOverIdx(idx);
+                    }}
+                    onDrop={() => canDrag && handleDrop(idx)}
+                    onDragEnd={() => {
+                      setDragIdx(null);
+                      setOverIdx(null);
+                    }}
+                    className={`border-b border-line last:border-b-0 transition ${
+                      isDragging
+                        ? 'opacity-40 bg-soft'
+                        : isOver
+                        ? 'border-t-2 border-t-accent bg-soft/50'
+                        : 'hover:bg-soft/40'
+                    }`}
+                  >
+                    {isProjects ? (
+                      <>
+                        {/* Drag Handle */}
+                        <td
+                          className="py-3 pl-3 pr-1 text-mute select-none cursor-grab active:cursor-grabbing text-base leading-none"
+                          title={canDrag ? 'Drag to reorder' : 'Clear search to reorder'}
+                        >
+                          ⋮⋮
+                        </td>
+
+                        {/* Thumbnail + Name */}
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center gap-3 min-w-[200px]">
+                            <div className="w-14 h-9 rounded-md bg-soft border border-line overflow-hidden shrink-0 grid place-items-center text-[10px] text-mute">
+                              {thumb.src ? (
+                                <img
+                                  src={thumb.src}
+                                  alt={r.title}
+                                  className="size-full object-cover"
+                                  draggable={false}
+                                  onError={(e) => {
+                                    if (thumb.fallback && e.currentTarget.src !== thumb.fallback) {
+                                      e.currentTarget.src = thumb.fallback;
+                                    } else if (videoThumb.src && e.currentTarget.src !== videoThumb.src) {
+                                      e.currentTarget.src = videoThumb.src;
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                'No img'
+                              )}
+                            </div>
+                            <span className="font-medium text-ink line-clamp-1">
+                              {r.title || r.id}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Status (shifted left) */}
+                        <td className="py-2.5 px-3 whitespace-nowrap">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadge(
+                              r.status
+                            )}`}
+                          >
+                            {r.status || 'Draft'}
+                          </span>
+                        </td>
+
+                        {/* Display Order */}
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-md bg-soft text-xs font-semibold text-ink">
+                            #{r.sortOrder || idx + 1}
+                          </span>
+                        </td>
+
+                        {/* Video */}
+                        <td className="py-2.5 px-3 whitespace-nowrap max-w-[180px]">
+                          {videoDoc ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full max-w-full"
+                              title={videoDoc.fileName}
+                            >
+                              <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              <span className="truncate">{videoDoc.fileName}</span>
+                            </span>
+                          ) : (
+                            <span className="text-xs text-mute">No video</span>
+                          )}
+                        </td>
+
+                        {/* Featured Auto-save Checkbox */}
+                        <td
+                          className="py-2.5 px-3 text-center"
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!!r.featured}
+                            onChange={(e) => autoSaveField(r, 'featured', e.target.checked)}
+                            className="size-4 accent-accent cursor-pointer"
+                            title="Toggle Featured (auto-saves)"
+                          />
+                        </td>
+
+                        {/* Homepage Auto-save Checkbox */}
+                        <td
+                          className="py-2.5 px-3 text-center"
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={r.homepageVisible !== false}
+                            onChange={(e) => autoSaveField(r, 'homepageVisible', e.target.checked)}
+                            className="size-4 accent-accent cursor-pointer"
+                            title="Toggle Homepage visibility (auto-saves)"
+                          />
+                        </td>
+
+                        {renderActions(r)}
+                      </>
+                    ) : isCategories ? (
+                      <>
+                        {/* Drag Handle */}
+                        <td
+                          className="py-3 pl-3 pr-1 text-mute select-none cursor-grab active:cursor-grabbing text-base leading-none"
+                          title={canDrag ? 'Drag to reorder' : 'Clear search to reorder'}
+                        >
+                          ⋮⋮
+                        </td>
+
+                        {/* Category Name */}
+                        <td className="py-2.5 px-3">
+                          <div className="min-w-[160px]">
+                            <span className="font-medium text-ink block">{r.name || r.id}</span>
+                            {r.description && (
+                              <span className="text-xs text-mute line-clamp-1">{r.description}</span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Status (shifted left) */}
+                        <td className="py-2.5 px-3 whitespace-nowrap">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusBadge(
+                              catStatus
+                            )}`}
+                          >
+                            {catStatus}
+                          </span>
+                        </td>
+
+                        {/* Display Order */}
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-md bg-soft text-xs font-semibold text-ink">
+                            #{r.sortOrder || idx + 1}
+                          </span>
+                        </td>
+
+                        {/* Slug */}
+                        <td className="py-2.5 px-3 text-xs text-mute whitespace-nowrap">
+                          {r.slug || '—'}
+                        </td>
+
+                        {/* Visible Auto-save Checkbox */}
+                        <td
+                          className="py-2.5 px-3 text-center"
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={r.visible !== false}
+                            onChange={(e) => autoSaveField(r, 'visible', e.target.checked)}
+                            className="size-4 accent-accent cursor-pointer"
+                            title="Toggle Visible on website (auto-saves)"
+                          />
+                        </td>
+
+                        {renderActions(r)}
+                      </>
+                    ) : (
+                      <>
+                        {hasSortOrder && (
+                          <td
+                            className="py-3 pl-3 pr-1 w-8 text-mute select-none cursor-grab active:cursor-grabbing"
+                            title="Drag to reorder"
+                          >
+                            ⋮⋮
+                          </td>
+                        )}
+                        <td className="py-3 px-4 font-medium">{r[fields[0].k] || r.id}</td>
+                        <td className="py-3 px-4 text-mute text-xs">
+                          {r.status ||
+                            (r.visible === false || r.active === false
+                              ? 'Hidden'
+                              : r.categoryName || r.email || '')}
+                        </td>
+                        {renderActions(r)}
+                      </>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
